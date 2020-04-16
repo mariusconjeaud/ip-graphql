@@ -1,0 +1,94 @@
+type Brand {
+  name: String
+  runs: [Run] @relation(name: "IS_IN", direction: "OUT")
+}
+
+type Keyword {
+  content: String
+  length: Int
+  regexes: [MatchedAs]
+  verbatims: [Verbatim] @relation(name: "FOUND_IN", direction: "OUT")
+}
+
+type Regex {
+  content: String
+  topics: [ContainsRegex]
+  keywords: [MatchedAs]
+}
+
+type Run {
+  id: ID!
+  idColumnNo: Int
+  brandColumnNo: Int
+  contentColumnNo: Int
+  createdAt: Date
+  hasHeader: Boolean
+  brands: [Brand] @relation(name: "IS_IN", direction: "IN")
+  topDowns: [TopDown] @relation(name: "CONTAINS_TOPDOWN", direction: "OUT")
+  users: User @relation(name: "OWNS", direction: "IN")
+  verbatims: [ContainsVerbatim]
+}
+
+type TopDown {
+  id: ID!
+  createdAt: Date
+  library: String
+  status: String
+  run: Run @relation(name: "CONTAINS_TOPDOWN", direction: "IN")
+  topics: [Topic] @relation(name: "CONTAINS_TOPIC", direction: "OUT")
+  brands: [Brand] @cypher (
+      statement: "MATCH (this)<-[:CONTAINS_TOPDOWN|IS_IN*2]-(b:Brand) RETURN b"
+    )
+}
+
+type Topic {
+  name: String
+  topdowns: [TopDown] @relation(name: "CONTAINS_TOPIC", direction: "IN")
+  regexes: [ContainsRegex]
+  verbatims: [AssignedTo]
+  keywords(topdownId: ID): [Keyword] @cypher (
+      statement : "MATCH p=(this)-[:CONTAINS_REGEX|MATCHED_AS*2]->(k:Keyword) WHERE all(r IN relationships(p) WHERE r.topdownId=$topdownId) RETURN k"
+    )
+}
+
+type User {
+  id: String
+  runs: [Run] @relation(name: "OWNS", direction: "OUT")
+}
+
+type Verbatim {
+  id: ID!
+  content: String
+  hash: String
+  keywords: [Keyword] @relation(name: "FOUND_IN", direction: "IN")
+  runs: [ContainsVerbatim]
+  topics: [AssignedTo]
+  brand(runId: ID): String @cypher(statement: "MATCH (this)<-[rel]-(r:Run) WHERE r.id=$runId RETURN rel.brand")
+}
+
+type AssignedTo @relation(name: "ASSIGNED_TO") {
+  from: Verbatim
+  to: Topic
+  topdownId: ID!
+}
+
+type ContainsVerbatim @relation(name: "CONTAINS_VERBATIM") {
+  from: Run
+  to: Verbatim
+  rowNo: Int!
+  siaId: Int!
+  brand: String
+}
+
+type ContainsRegex @relation(name: "CONTAINS_REGEX") {
+  from: Topic
+  to: Regex
+  topdownId: ID!
+}
+
+type MatchedAs @relation(name: "MATCHED_AS") {
+  from: Regex
+  to: Keyword
+  topdownId: ID!
+  count: Int!
+}

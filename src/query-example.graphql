@@ -1,0 +1,24 @@
+query getTopDownResults($runId: ID, $topdownId: ID)
+{
+  TopDown(filter: {id: $topdownId})
+  {
+    id
+    library
+    topics
+    {
+      name
+      verbatims(filter: {topdownId: $topdownId})
+      {
+        Verbatim
+        {
+          content
+          brand(runId: $runId)
+        }
+      }
+      keywords(topdownId: $topdownId)
+      {
+        content
+      }
+    }
+  }
+}
