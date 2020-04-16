@@ -37,7 +37,7 @@ Please note that to make this query work, you do need to provide values for runI
 
 ```json
 {
-    "runId": "whatever"
+    "runId": "whatever",
     "topdownId": "whatever"
 }
 ```
